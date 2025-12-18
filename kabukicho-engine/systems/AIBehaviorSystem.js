@@ -41,26 +41,29 @@ export class AIBehaviorSystem {
         });
     }
 
-    _interact(npc, target, logs) {
-        const rel = npc.initRelation(target.id);
-        const rand = Math.random();
 
-        // 적극도와 본능에 따른 분기
-        if (rand < 0.2 && npc.instincts.affair >= 3) {
-            // 고백/어장관리 시도
-            const result = this.relSys.tryProgressRelation(npc, target);
-            logs.push(`[AI] ${this.aiSys.generateEventLog(npc, target, 'scandal')}`);
-            npc.currentMsg = "우리 사귈래? 헤헤..";
-        } else if (npc.money < 1000) {
-            // 구걸 시도 (마다오 모드)
-            npc.currentMsg = "미안한데.. 1000엔만 빌려주면 안 될까?";
-            logs.push(`[AI] ${npc.name}이(가) ${target.name}에게 구걸을 시도합니다.`);
-        } else {
-            // 일반 대화 (덕목 기반)
-            npc.currentMsg = "오늘 마요네즈 상태가 좋군.";
-            this.relSys.cheer(npc, target);
-        }
+// kabukicho-engine/systems/AIBehaviorSystem.js
+
+        _interact(npc, target, logs) {
+    const rel = npc.initRelation(target.id);
+    const rand = Math.random();
+
+    if (rand < 0.2 && npc.instincts.affair >= 3) {
+        const success = this.relSys.tryProgressRelation(npc, target);
+        // aiSys가 없거나 generateEventLog가 터질 경우를 대비해라
+        const logMsg = this.aiSys?.generateEventLog 
+            ? this.aiSys.generateEventLog(npc, target, 'scandal')
+            : `${npc.name}이(가) ${target.name}에게 끈적한 시선을 보냅니다.`;
+        logs.push(`[AI] ${logMsg}`);
+        npc.currentMsg = success ? "오늘부터 1일이다. 🚬" : "우리 사귈래? 헤헤..";
+    } else if (npc.money < 1000) {
+        npc.currentMsg = "미안한데.. 1000엔만 빌려주면 안 될까?";
+        logs.push(`[AI] ${npc.name}이(가) ${target.name}에게 구걸을 시도합니다.`);
+    } else {
+        npc.currentMsg = "오늘 마요네즈 상태가 좋군.";
+        this.relSys.cheer(npc, target); // 이제 이 함수가 존재하니 안 터질 거다
     }
+        }
 
     _move(npc) {
         const dx = Math.floor(Math.random() * 3) - 1;

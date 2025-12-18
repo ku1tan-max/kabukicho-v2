@@ -3,47 +3,52 @@
 export class RelationSystem {
     constructor() {
         this.DEFS = {
-            AF_MAX: 5,        // $def_af: 바람기 최대치
-            LO_LIMIT: 3,      // $def_lo: 고백 거절 한계 (단념 트리거)
-            PB_BONUS: 20,     // $def_pb: 선물 공세 보너스
-            GASLIGHT_THRESHOLD: 80 // 가스라이팅을 시작하기 위한 최소 호감도
+            AF_MAX: 5,
+            LO_LIMIT: 3,
+            PB_BONUS: 20,
+            GASLIGHT_THRESHOLD: 80
         };
     }
 
-    /**
-     * 3.2. 매칭 알고리즘 (sub love_match)
-     * 8대 덕목(@VT) 우선순위 일치도 + $bs(성 지향성) 연산
-     */
+    // NPC들이 서로 친목질할 때 쓰는 함수다
+    cheer(a, b) {
+        const relA = a.initRelation(b.id);
+        const relB = b.initRelation(a.id);
+        relA.score += 2;
+        relB.score += 2;
+        // console.log(`${a.name}와 ${b.name}이 마요네즈 이야기를 하며 친해졌습니다.`);
+    }
+
+    // 관계 진전 시도 (고백이나 어장관리 로직의 뼈대다)
+    tryProgressRelation(a, b) {
+        const matchScore = this.calculateLoveMatch(a, b);
+        const rel = a.initRelation(b.id);
+
+        if (matchScore > 60) {
+            rel.level = 'lv'; // 연인으로 승격
+            return true;
+        }
+        rel.breakCount++; // 거절 횟수 증가
+        return false;
+    }
+
     calculateLoveMatch(a, b, itemBonus = 0) {
         let score = 0;
-
-        // 1. 8대 덕목 우선순위 비교 (1위에 가까울수록 가중치 상승)
-        // 서로가 중시하는 덕목이 일치하는지 확인
         Object.keys(a.virtues).forEach(vKey => {
-            const aRank = a.virtues[vKey]; // 1~8
+            const aRank = a.virtues[vKey];
             const bRank = b.virtues[vKey];
-            
-            // 두 캐릭터 모두 해당 덕목을 상위권(1~3위)으로 여길 때 보너스
             if (aRank <= 3 && bRank <= 3) {
                 score += (4 - aRank) * 15;
             }
         });
-
-        // 2. 성 지향성($bs) 및 성별 체크
-        // 성별이 같을 경우, 양쪽의 $bs 수치를 평균내어 확률 보정
         if (a.gender === b.gender) {
             const orientationFactor = (a.instincts.orientation + b.instincts.orientation) / 200;
             score *= orientationFactor;
         }
-
-        // 3. 기분 및 아이템 보너스 ($def_pb)
         score += (a.mood / 10) + itemBonus;
-
         return Math.min(100, Math.max(0, score));
     }
-/**
-     * 가스라이팅 실행 ($urr & $blue 연동)
-     */
+     // 가스라이팅 실행 ($urr & $blue 연동)
     executeGaslighting(perpetrator, victim, logs) {
         const rel = perpetrator.initRelation(victim.id);
         

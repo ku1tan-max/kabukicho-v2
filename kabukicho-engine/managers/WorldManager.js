@@ -1,49 +1,42 @@
 // kabukicho-engine/managers/WorldManager.js
 import { Character } from '../models/Character.js';
 import { City } from '../models/City.js';
+import { GRID_SIZE } from '../constants/gameConfig.js'; // 15x15 연동
 
-/**
- * 카부키초 세계 관리자: 20x20 맵 및 거주민 관리
- */
 export class WorldManager {
     constructor() {
-        this.gridSize = 20; // 20x20 격자 확장
+        this.gridSize = GRID_SIZE; 
         this.gridMap = []; 
         this.allCharacters = [];
-        this.city = new City(); // 도시 경제 상태
+        this.city = new City();
         this.initializeGame();
     }
 
-    /**
-     * 게임 초기화: 맵 생성 및 주요 인물 배치
-     */
     initializeGame() {
-        // 1. 20x20 빈 그리드 생성
+        // 1. 15x15 그리드 생성
         this.gridMap = Array.from({ length: this.gridSize }, () => Array(this.gridSize).fill(null));
         this.allCharacters = [];
 
-        // 2. 주요 캐릭터 스폰 (성별 및 덕목 랜덤 생성 포함)
-        this.spawnCharacter("긴토키", true, "NEUTRAL", "M", 0, 0); // 플레이어
-        
-        // NPC들 (기획에 따라 좌표 분산)
-        this.spawnCharacter("히지카타", false, "ORDER", "M", 5, 5);
-        this.spawnCharacter("오키타", false, "ORDER", "M", 5, 6);
-        this.spawnCharacter("카구라", false, "NEUTRAL", "F", 15, 15);
-        this.spawnCharacter("신파치", false, "NEUTRAL", "M", 15, 14);
-        this.spawnCharacter("오토세", false, "NEUTRAL", "F", 1, 1);
-        this.spawnCharacter("마다오", false, "NEUTRAL", "M", 10, 10);
+        // 2. 기획 좌표에 따른 정밀 스폰 (이름, 플레이어여부, 세력, 성별, x, y, homeId)
+        this.spawnCharacter("긴토키", true, "NEUTRAL", "M", 1, 1, "yorozuya"); 
+        this.spawnCharacter("히지카타", false, "ORDER", "M", 12, 1, "home_b"); 
+        this.spawnCharacter("오키타", false, "ORDER", "M", 13, 1, "home_b");
+        this.spawnCharacter("카구라", false, "NEUTRAL", "F", 5, 1, "home_a");
+        this.spawnCharacter("오토세", false, "NEUTRAL", "F", 1, 4, null);
     }
 
-    /**
-     * 캐릭터 생성 및 맵 배치
-     */
-    spawnCharacter(name, isPlayer, faction, gender, x, y) {
-        const char = new Character(name, isPlayer, faction, gender, x, y);
+    spawnCharacter(name, isPlayer, faction, gender, x, y, homeId) {
+        // Character 생성자에 homeId까지 확실히 넘겨준다. 🚬
+        const char = new Character(name, isPlayer, faction, gender, x, y, homeId);
         this.allCharacters.push(char);
         this.gridMap[y][x] = char;
         return char;
     }
 
+    getCell(x, y) {
+        if (x < 0 || x >= this.gridSize || y < 0 || y >= this.gridSize) return null;
+        return this.gridMap[y][x];
+    }
     /**
      * 캐릭터 제거 (사망 시 처리)
      */
