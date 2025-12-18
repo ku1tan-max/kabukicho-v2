@@ -1,56 +1,71 @@
 // kabukicho-engine/services/WorldManager.js
 import { Character } from '../models/Character.js';
-import { Faction } from '../constants/gameConfig.js';
+import { City } from '../models/City.js';
 
 export class WorldManager {
     constructor() {
-        this.gridMap = []; // 10x10 2차원 배열
+        this.gridSize = 20; // 20x20 격자 확장
+        this.gridMap = []; 
         this.allCharacters = [];
+        this.city = new City();
         this.initializeGame();
     }
 
-    // 게임 초기화 (WorldMapService.java의 initializeGame 이식)
     initializeGame() {
-        // 1. 10x10 빈 그리드 생성
-        this.gridMap = Array.from({ length: 10 }, () => Array(10).fill(null));
+        // 20x20 빈 그리드 생성
+        this.gridMap = Array.from({ length: this.gridSize }, () => Array(this.gridSize).fill(null));
         this.allCharacters = [];
 
-        // 2. 플레이어 및 NPC 스폰 (자바 좌표 및 세력 데이터 완벽 이식)
-        // spawn(이름, 플레이어여부, 세력, x, y)
-        this.spawnCharacter("긴토키(유저)", true, Faction.NEUTRAL, 0, 0); //
-        
-        // 주요 NPC 배치
-        this.spawnCharacter("히지카타", false, Faction.ORDER, 3, 2); // 회사 근처
-        this.spawnCharacter("오키타", false, Faction.ORDER, 3, 3);    //
-        this.spawnCharacter("가츠라", false, Faction.CHAOS, 6, 8);   // 파친코 근처
-        this.spawnCharacter("신스케", false, Faction.CHAOS, 7, 8);   //
-        this.spawnCharacter("신파치", false, Faction.NEUTRAL, 8, 8); // 이자카야
-        this.spawnCharacter("카구라", false, Faction.NEUTRAL, 8, 9); //
-        this.spawnCharacter("엘리자베스", false, Faction.NEUTRAL, 4, 4); // 광장
-        this.spawnCharacter("마다오", false, Faction.NEUTRAL, 5, 5);  // 광장
-        this.spawnCharacter("오토세", false, Faction.NEUTRAL, 1, 1);   //
+        // 주요 캐릭터 배치 (긴토키는 플레이어)
+        this.spawnCharacter("긴토키", true, "NEUTRAL", "M", 0, 0);
+        this.spawnCharacter("히지카타", false, "ORDER", "M", 5, 5);
+        this.spawnCharacter("오키타", false, "ORDER", "M", 7, 5);
+        this.spawnCharacter("카구라", false, "NEUTRAL", "F", 15, 15);
+        this.spawnCharacter("마다오", false, "NEUTRAL", "M", 10, 10);
     }
 
-    spawnCharacter(name, isPlayer, faction, x, y) {
-        const char = new Character(name, isPlayer, faction, x, y);
-        
-        // 자바 로직: 플레이어 초기 자금 상향 조정 (3000엔)
-        if (isPlayer) {
-            char.money = 3000;
-            char.currentEmoji = "🍓"; // 해결사 아이콘
-        }
-
+    spawnCharacter(name, isPlayer, faction, gender, x, y) {
+        const char = new Character(name, isPlayer, faction, gender, x, y);
         this.allCharacters.push(char);
-        this.gridMap[y][x] = char; // [y][x] 구조 주의해라
+        this.gridMap[y][x] = char;
+        return char;
     }
 
-    // 현재 맵 상태 반환
-    getGridMap() {
-        return this.gridMap;
+    /**
+     * NPC 자율 이동 로직 ($ac 수치 기반)
+     */
+    processNPCMovement() {
+        this.allCharacters.forEach(char => {
+            if (char.isPlayer) return; // 플레이어는 제외
+
+            // 적극도($ac)에 따라 이동할지 결정 (0~100)
+            const moveChance = char.instincts.proactivity; 
+            if (Math.random() * 100 < moveChance) {
+                this._moveRandomly(char);
+            }
+        });
     }
 
-    // ID로 캐릭터 찾기 (GameEngine.java의 findCharacterById 이식)
-    findCharacterById(id) {
-        return this.allCharacters.find(c => c.id === id);
+    _moveRandomly(char) {
+        const directions = [
+            { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
+        ];
+        const dir = directions[Math.floor(Math.random() * directions.length)];
+        
+        const nextX = Math.max(0, Math.min(this.gridSize - 1, char.x + dir.x));
+        const nextY = Math.max(0, Math.min(this.gridSize - 1, char.y + dir.y));
+
+        // 이동하려는 칸이 비어있는 경우에만 이동
+        if (!this.gridMap[nextY][nextX]) {
+            this.gridMap[char.y][char.x] = null;
+            char.x = nextX;
+            char.y = nextY;
+            this.gridMap[char.y][char.x] = char;
+        }
+    }
+
+    getCell(x, y) {
+        if (x < 0 || x >= this.gridSize || y < 0 || y >= this.gridSize) return null;
+        return this.gridMap[y][x];
     }
 }

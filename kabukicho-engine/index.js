@@ -14,12 +14,11 @@ export class KabukichoEngine {
     }
 
     /**
-     * 프론트엔드에서 턴을 실행할 때 호출
+     * 프론트엔드에서 턴을 실행할 때 호출 (targetX, targetY는 클릭 위치)
      */
     nextTurn(targetX, targetY) {
+        // 턴 매니저를 통해 턴 진행 (NPC 자율 행동 및 플레이어 이동 포함)
         const result = this.turn.runTurn(targetX, targetY);
-        
-        // 턴 결과에 AI 메시지나 추가 로그를 덧붙일 수 있음
         return result;
     }
 
@@ -30,17 +29,39 @@ export class KabukichoEngine {
         const char = this.world.allCharacters.find(c => c.id === id);
         if (!char) return null;
 
-        // 관계 정보를 사람이 읽기 쉬운 텍스트로 변환 (AI 활용)
-        const details = {
+        return {
             ...char,
             relationSummary: Array.from(char.relations.entries()).map(([tid, data]) => {
                 const target = this.world.allCharacters.find(c => c.id === tid);
                 return `${target?.name || '누군가'}: ${data.level} (${data.score})`;
             })
         };
-        return details;
+    }
+
+    /**
+     * 시장 권한: 세율 조정 제안 ($lg 반영)
+     */
+    proposeTaxChange(newValue) {
+        if (!this.world.city) return "도시 시스템이 로드되지 않았습니다.";
+        this.world.city.proposePolicy('taxRate', newValue);
+        return `세율을 ${newValue}%로 변경하는 안건이 심의에 부쳐졌다. 1시간($lg) 뒤에 확인해라.`;
+    }
+
+    /**
+     * 특정 캐릭터 가스라이팅 시도
+     */
+    attemptGaslight(targetId) {
+        const player = this.world.allCharacters.find(c => c.isPlayer);
+        const victim = this.world.allCharacters.find(c => c.id === targetId);
+        
+        if (!player || !victim) return "대상이 없다.";
+        
+        const logs = [];
+        // RelationSystem을 통한 실제 로직 반영
+        const result = this.turn.relSys.applyGaslighting(player, victim, logs);
+        return { result, logs };
     }
 }
 
-// 싱글톤으로 수출하여 어디서든 하나의 엔진 상태를 유지함
+// [핵심] 싱글톤 인스턴스 단 하나만 수출 (중복 선언 방지)
 export const engine = new KabukichoEngine();

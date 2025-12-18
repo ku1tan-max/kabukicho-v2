@@ -1,0 +1,49 @@
+/* frontend/src/styles/Retro95.css */
+:root {
+  --w95-gray: #c0c0c0;
+  --w95-white: #ffffff;
+  --w95-dark: #808080;
+  --w95-black: #000000;
+  --w95-blue: #000080;
+}
+
+.retro-window {
+  background-color: var(--w95-gray);
+  border: 2px solid;
+  border-color: var(--w95-white) var(--w95-dark) var(--w95-dark) var(--w95-white);
+  padding: 2px;
+  box-shadow: 1px 1px 0px var(--w95-black);
+  font-family: 'MS Sans Serif', 'Dotum', sans-serif;
+}
+
+.retro-title-bar {
+  background: var(--w95-blue);
+  color: white;
+  padding: 3px 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.retro-button {
+  background-color: var(--w95-gray);
+  border: 2px solid;
+  border-color: var(--w95-white) var(--w95-dark) var(--w95-dark) var(--w95-white);
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  outline: none;
+}
+
+.retro-button:active {
+  border-color: var(--w95-dark) var(--w95-white) var(--w95-white) var(--w95-dark);
+  padding: 5px 9px 3px 11px;
+}
+
+.retro-inset {
+  border: 2px solid;
+  border-color: var(--w95-dark) var(--w95-white) var(--w95-white) var(--w95-dark);
+  background-color: #fff;
+}

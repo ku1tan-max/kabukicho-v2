@@ -1,47 +1,52 @@
 // kabukicho-engine/systems/AISystem.js
 import { VIRTUE_TYPES } from '../constants/Virtues.js';
 
-/**
- * API 연동 지능형 통신 엔진: 캐릭터의 인격에 따른 텍스트 생성
- */
 export class AISystem {
     constructor() {
         this.styles = {
-            intellect: ["논리적으로 분석해본 결과...", "본인의 견해로는 말이죠.", "통계학적으로 당신은..."],
-            stamina: ["야! 너 일루와 봐!", "몸으로 부딪혀보자고!", "뜨겁게 타올라라!!"],
-            kindness: ["항상 응원하고 있어요.", "오늘 하루는 어떠셨나요?", "부디 몸조심하세요..."]
+            [VIRTUE_TYPES.INTELLECT]: ["분석 결과,", "본인의 가설에 따르면", "논리적으로 볼 때"],
+            [VIRTUE_TYPES.STAMINA]: ["야!", "한판 붙자고!", "뜨겁게 타올라라!"],
+            [VIRTUE_TYPES.KINDNESS]: ["저기..", "항상 응원해요", "오늘 하루는 어떠셨나요?"],
+            [VIRTUE_TYPES.WEALTH]: ["자본의 논리에 따르면", "내 수표책이 말하길"],
+            [VIRTUE_TYPES.SINCERITY]: ["규율에 따라,", "성실함이 최고의 가치지."]
         };
     }
 
     /**
-     * 6. 편지 및 소통 엔진: 캐릭터의 성향에 따른 메일 내용 생성
+     * 6. 지능형 메일 생성 (아이디어 20선 중 핵심 템플릿 데이터화)
      */
-    generateMailContent(sender, receiver, type) {
-        let content = "";
+    generateMail(sender, receiver, type) {
         const topVirtue = this._getTopVirtue(sender);
+        const prefix = this.styles[topVirtue]?.[Math.floor(Math.random() * this.styles[topVirtue].length)] || "어이,";
+        let content = "";
 
-        // 1. 덕목 기반 문체 결정
-        let prefix = "어이, ";
-        if (sender.virtues[VIRTUE_TYPES.INTELLECT] <= 2) prefix = this.styles.intellect[Math.floor(Math.random() * 3)];
-        else if (sender.virtues[VIRTUE_TYPES.STAMINA] <= 2) prefix = this.styles.stamina[Math.floor(Math.random() * 3)];
-        else if (sender.virtues[VIRTUE_TYPES.KINDNESS] <= 2) prefix = this.styles.kindness[Math.floor(Math.random() * 3)];
-
-        // 2. 상황(type)에 따른 내용 생성
         switch (type) {
-            case 'love': // 바람기($AF)가 반영된 고백
+            case 'affair_confess': // 바람기($AF) 위장 고백
                 if (sender.instincts.affair >= 4) {
-                    content = `${prefix} 사실 내 마음속엔 너뿐이야. (다른 4명에게도 보낸 메시지입니다.)`;
+                    content = `${prefix} 사실 내 마음속엔 너뿐이야. (현재 ${sender.relations.size}명에게 작업 중)`;
                 } else {
-                    content = `${prefix} 진심으로 당신을 좋아하게 된 것 같습니다.`;
+                    content = `${prefix} 오직 당신만을 바라보고 있습니다.`;
                 }
                 break;
 
-            case 'gaslighting': // 가스라이팅 집착 메일
-                content = `${prefix} 나 없으면 너도 끝인 거 알지? 너 같은 걸 누가 받아주겠어.`;
+            case 'gaslighting_chain': // 가스라이팅 집착 ($urr)
+                content = `${prefix} 왜 답장이 없어? 나 없으면 죽는다며? 네가 자초한 고립인 걸 잊지 마.`;
                 break;
 
-            case 'begging': // 마다오의 구걸
-                content = `${prefix} 미안한데... 파친코 한 판만 하게 1000엔만 빌려주면 안 될까?`;
+            case 'madao_beg': // 마다오의 구걸 (재력/소지금 부족)
+                content = `${prefix} 미안한데... 파친코 자금이 떨어졌어. 1000엔만 빌려주면 안 될까?`;
+                break;
+
+            case 'drunken_truth': // 취중진담 (오타 생성기 적용)
+                content = `${prefix} ${this._applyDrunkenEffect("너를 정말로 좋아하고 있어.. 우리 사귈래?")}`;
+                break;
+
+            case 'bisexual_vibe': // 동성애도 발동 ($bs)
+                if (Math.random() < (sender.instincts.orientation / 100)) {
+                    content = `${prefix} 너랑 있으면 기분이 묘해. 우리 그냥 친구 맞지?`;
+                } else {
+                    content = `${prefix} 넌 정말 의리 있는 녀석이야.`;
+                }
                 break;
 
             case 'will': // 사망 전 유언장
@@ -49,26 +54,36 @@ export class AISystem {
                 break;
 
             default:
-                content = `${prefix} 그냥 생각나서 보냈다. 🚬`;
+                content = `${prefix} 마요네즈나 먹으러 가자. 🚬`;
         }
 
-        return content;
+        return {
+            id: crypto.randomUUID(),
+            senderName: sender.name,
+            content: content,
+            timestamp: new Date().toLocaleTimeString()
+        };
+    }
+
+    _getTopVirtue(char) {
+        const sorted = Object.entries(char.virtues).sort(([, a], [, b]) => a - b);
+        return sorted[0][0];
+    }
+
+    _applyDrunkenEffect(text) {
+        const hiccups = ["..헤헤", " 윽.. ", " 어라..", " 우웩 ", " 읏.. "];
+        return text.split('').map(c => 
+            Math.random() < 0.2 ? c + hiccups[Math.floor(Math.random() * hiccups.length)] : c
+        ).join('');
     }
 
     /**
-     * 상세 로그 및 뉴스 엔진: 사건을 문장으로 묘사
+     * 7. 상세 로그 묘사 엔진
      */
-    generateEventLog(a, b, action) {
-        if (action === 'fight') {
-            return `👊 ${a.name}와 ${b.name}이(가) 서로의 가치관을 비난하며 술상을 엎었습니다!`;
-        }
-        if (action === 'divorce') {
-            return `💔 ${a.name}이(가) 이혼 서류를 던지며 ${b.name}의 모든 재산을 털어갔습니다.`;
-        }
-        return `📢 ${a.name}와 ${b.name} 사이에 사건이 발생했습니다.`;
-    }
-
-    _getTopVirtue(character) {
-        return Object.entries(character.virtues).sort(([, a], [, b]) => a - b)[0][0];
+    describeEvent(a, b, action) {
+        if (action === 'fight') return `${a.name}와 ${b.name}이 취해서 가치관 문제로 술상을 엎었습니다!`;
+        if (action === 'divorce') return `${a.name}가 ${b.name}에게 위자료 200만 엔을 뜯어내며 파멸시켰습니다.`;
+        if (action === 'snapshot') return `📸 [스냅샷] ${a.name}와 ${b.name}의 즐거운(?) 한때가 기록되었습니다.`;
+        return `${a.name}와 ${b.name} 사이에 묘한 기류가 흐릅니다.`;
     }
 }

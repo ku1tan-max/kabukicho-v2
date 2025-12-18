@@ -1,11 +1,16 @@
 {
-  "name": "kabukicho-people",
+  "name": "kabukicho-project",
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "dev": "vite frontend",
+    "electron": "electron .",
+    "app": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && npm run electron\""
   },
   "devDependencies": {
-    "electron": "^33.4.11"
+    "electron": "^latest",
+    "concurrently": "^latest",
+    "wait-on": "^latest",
+    "vite": "^latest"
   }
 }
