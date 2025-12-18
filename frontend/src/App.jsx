@@ -1,74 +1,61 @@
 // frontend/src/App.jsx
 import React, { useState, useEffect } from 'react';
 import GameGrid from './GameGrid';
-import StatusPanel from './StatusPanel';
-import { engine } from '../../kabukicho-engine'; 
+import { engine } from '../../kabukicho-engine';
 import './App.css';
 
 function App() {
-  const [gameState, setGameState] = useState(null);
+  const [world, setWorld] = useState(engine.world);
   const [selectedChar, setSelectedChar] = useState(null);
+  const [globalLogs, setGlobalLogs] = useState(["카부키초에 오신 것을 환영합니다."]);
 
-  useEffect(() => {
-    // 초기 엔진 데이터 로드
-    const initialState = {
-      characters: [...engine.world.allCharacters],
-      city: engine.world.city,
-      turn: 0,
-      logs: ["카부키초에 어서와라. 🚬"]
-    };
-    setGameState(initialState);
-  }, []);
-
-  const handleNextTurn = (targetX, targetY) => {
-    // 엔진에 턴 진행 요청
-    const result = engine.nextTurn(targetX, targetY);
-    setGameState({ ...result });
+  const handleNextTurn = (tx, ty) => {
+    const result = engine.nextTurn(tx, ty);
+    setWorld({ ...engine.world });
+    if (result.logs) setGlobalLogs(prev => [...result.logs, ...prev].slice(0, 50));
+    
+    // 선택된 캐릭터가 있다면 로그 업데이트
+    if (selectedChar) {
+      const updated = engine.world.allCharacters.find(c => c.id === selectedChar.id);
+      setSelectedChar(updated);
+    }
   };
-
-  const handleCharClick = (id) => {
-    const detail = engine.getCharacterDetail(id);
-    setSelectedChar(detail);
-  };
-
-  if (!gameState) return <div className="loading">부팅 중...</div>;
-
-  // 플레이어 우울 상태($blue) 체크
-  const player = gameState.characters.find(c => c.isPlayer);
-  const isPlayerBlue = player?.isBlue;
 
   return (
-    <div className={`app-container ${isPlayerBlue ? 'blue-mood' : ''}`}>
-      <div className="retro-window main-frame">
-        <div className="retro-title-bar">
-          <span>KABUKICHO_PEOPLE.EXE</span>
-          <div className="window-controls">
-            <span>_</span><span>X</span>
-          </div>
-        </div>
-        
-        <header className="stats-header">
-          <div className="stat-item">GP: {gameState.city.budget}</div>
-          <div className="stat-item">세율: {gameState.city.taxRate}%</div>
-          {gameState.city.policyTimer > 0 && (
-            <div className="policy-timer">심의 중: {gameState.city.policyTimer}분</div>
-          )}
-          <div className="stat-item">Turn: {gameState.turn}</div>
-        </header>
+    <div className="kabukicho-retro-app">
+      <header className="game-header">
+        <h1>KABUKICHO SHIM-Z V2.0</h1>
+        <div className="status-bar">TURN: {engine.turn?.currentTurn || 0} | 🚬 마요네즈 잔량: MAX</div>
+      </header>
 
-        <main className="game-body">
+      <div className="main-layout">
+        <section className="grid-section">
           <GameGrid 
-            characters={gameState.characters} 
-            gridSize={engine.world.gridSize}
-            onCellClick={handleNextTurn}
-            onCharClick={handleCharClick}
+            characters={world.allCharacters} 
+            onCellClick={(x, y) => handleNextTurn(x, y)}
+            onCharClick={(id) => setSelectedChar(world.allCharacters.find(c => c.id === id))}
           />
-          <StatusPanel 
-            selectedChar={selectedChar} 
-            logs={gameState.logs}
-            news={gameState.city.news}
-          />
-        </main>
+        </section>
+
+        <aside className="log-sidebar">
+          <div className="briefing-panel">
+            <h3>📰 카부키초 브리핑</h3>
+            <div className="scroll-box">
+              {globalLogs.map((log, i) => <p key={i} className="log-item">{log}</p>)}
+            </div>
+          </div>
+
+          <div className="personal-panel">
+            <h3>📝 개인 블로그: {selectedChar?.name || "---"}</h3>
+            <div className="scroll-box">
+              {selectedChar?.blog.length > 0 ? (
+                selectedChar.blog.map((post, i) => <p key={i} className="blog-post">{post}</p>)
+              ) : (
+                <p className="empty-msg">기록된 사건이 없습니다.</p>
+              )}
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

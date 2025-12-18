@@ -1,7 +1,7 @@
+// kabukicho-engine/models/Character.js
 import { VIRTUE_TYPES } from '../constants/Virtues.js';
 
 export class Character {
-    // 1. 생성자 파라미터 맨 끝에 homeId = null을 추가하여 에러를 방지합니다. 🚬
     constructor(name, isPlayer, faction, gender = 'M', x = 0, y = 0, homeId = null) {
         this.id = crypto.randomUUID();
         this.name = name;
@@ -10,45 +10,28 @@ export class Character {
         this.gender = gender;
         this.x = x;
         this.y = y;
-        this.homeId = homeId; // 이제 WorldManager에서 homeId를 안 보내줘도 null로 처리되어 에러가 안 납니다.
+        this.homeId = homeId; // 거주지 ID 주입
 
-        // --- 생활 패턴 및 상태 ---
-        this.schedule = 'WORK'; 
+        // --- 핵심 상태 및 일상 ---
         this.hp = 100;
-        this.maxHp = 100;
-        this.hunger = 80;
-        this.mood = 50;
-        this.isBlue = false;         // $blue: 우울 상태 (가스라이팅 결과)
-        this.isPregnant = false;     // pg: 임신 여부
-        this.age = isPlayer ? 25 : Math.floor(Math.random() * 40) + 15;
+        this.money = isPlayer ? 3000 : 5000;
+        this.blogLogs = []; // 상태 기록용 블로그
 
-        // --- 1. 8대 가치관 시스템 (@VT) ---
+        // --- 1. 8대 가치관 시스템 (@VT: 1~8위 순위 지정) ---
         this.virtues = this._generateVirtuePriorities();
 
         // --- 2. 3대 핵심 사회적 본능 변수 ---
         this.instincts = {
-            affair: Math.floor(Math.random() * 6),        // @AF: 바람기
-            proactivity: Math.floor(Math.random() * 101), // $ac: 적극도
-            orientation: Math.floor(Math.random() * 101)  // $bs: 성 지향성
+            affair: Math.floor(Math.random() * 6),        // $af: 바람기 (0~5)
+            proactivity: Math.floor(Math.random() * 101), // $ac: 적극도 (0~100%)
+            orientation: Math.floor(Math.random() * 101)  // $bs: 성 지향성 (0~100%)
         };
 
-        // --- 3. 심층 인간관계 시스템 ---
         this.relations = new Map();
-
-        // --- 4. 경제 및 사회적 신분 시스템 ---
-        this.jobTier = 1;            
-        this.sincerityScore = 0;     
-        this.money = isPlayer ? 3000 : 5000;
-        this.assets = 0;             
-
-        // UI용 부가 정보
-        this.currentMsg = "";        
-        this.currentEmoji = isPlayer ? "🍓" : null;
-        this.msgDuration = 0;
     }
 
     /**
-     * 8대 덕목 우선순위 생성 (기존 로직 유지)
+     * 8대 덕목의 우선순위를 무작위로 생성한다. (1위가 가장 중요)
      */
     _generateVirtuePriorities() {
         const types = Object.values(VIRTUE_TYPES);
@@ -61,17 +44,14 @@ export class Character {
     }
 
     /**
-     * 관계 초기화 (기존 로직 유지)
+     * 캐릭터의 현재 상태나 사건을 블로그에 기록한다.
      */
-    initRelation(targetId) {
-        if (!this.relations.has(targetId)) {
-            this.relations.set(targetId, {
-                level: 'bl',      
-                score: 0,         
-                isBlocked: false, 
-                breakCount: 0     
-            });
-        }
-        return this.relations.get(targetId);
+    writeBlog(content) {
+        const entry = {
+            time: new Date().toLocaleTimeString(),
+            content: content
+        };
+        this.blogLogs.unshift(entry);
+        if (this.blogLogs.length > 20) this.blogLogs.pop();
     }
 }

@@ -1,69 +1,80 @@
-// kabukicho-engine/services/WorldManager.js
+// kabukicho-engine/managers/WorldManager.js
+import { GRID_SIZE, BUILDINGS, SPECIAL_AREAS, TILE_TYPES } from '../constants/gameConfig.js';
+import { INITIAL_CHARACTERS, INITIAL_ROADS, INITIAL_OBJECTS } from '../constants/MapData.js';
 import { Character } from '../models/Character.js';
-import { City } from '../models/City.js';
 
 export class WorldManager {
     constructor() {
-        this.gridSize = 20; // 20x20 격자 확장
+        this.gridSize = GRID_SIZE; // 15x15
         this.gridMap = []; 
         this.allCharacters = [];
-        this.city = new City();
         this.initializeGame();
     }
 
+    /**
+     * 맵 타일 초기화 및 캐릭터 스폰
+     */
     initializeGame() {
-        // 20x20 빈 그리드 생성
-        this.gridMap = Array.from({ length: this.gridSize }, () => Array(this.gridSize).fill(null));
-        this.allCharacters = [];
+        // 1. 15x15 빈 그리드 생성 (Street 기본값)
+        this.gridMap = Array.from({ length: this.gridSize }, (_, y) => 
+            Array.from({ length: this.gridSize }, (_, x) => ({
+                x, y, 
+                type: TILE_TYPES.STREET,
+                buildingId: null,
+                isEntrance: false
+            }))
+        );
 
-        // 주요 캐릭터 배치 (긴토키는 플레이어)
-        this.spawnCharacter("긴토키", true, "NEUTRAL", "M", 0, 0);
-        this.spawnCharacter("히지카타", false, "ORDER", "M", 5, 5);
-        this.spawnCharacter("오키타", false, "ORDER", "M", 7, 5);
-        this.spawnCharacter("카구라", false, "NEUTRAL", "F", 15, 15);
-        this.spawnCharacter("마다오", false, "NEUTRAL", "M", 10, 10);
+        // 2. 건물 데이터 주입 {x, y, w, h}
+        BUILDINGS.forEach(b => {
+            for (let i = b.y; i < b.y + b.h; i++) {
+                for (let j = b.x; j < b.x + b.w; j++) {
+                    if (this.gridMap[i] && this.gridMap[i][j]) {
+                        this.gridMap[i][j].type = TILE_TYPES.BUILDING;
+                        this.gridMap[i][j].buildingId = b.id;
+                        this.gridMap[i][j].color = b.color;
+                    }
+                }
+            }
+            // 출입구 설정
+            if (b.entrance) {
+                this.gridMap[b.entrance.y][b.entrance.x].isEntrance = true;
+            }
+        });
+
+        // 3. 도로 데이터 주입
+        INITIAL_ROADS.forEach(road => {
+            if (road.y !== undefined) { // 가로 도로
+                for (let x = road.startX; x <= road.endX; x++) {
+                    this.gridMap[road.y][x].type = TILE_TYPES.ROAD;
+                }
+            } else if (road.x !== undefined) { // 세로 도로
+                for (let y = road.startY; y <= road.endY; y++) {
+                    this.gridMap[y][road.x].type = TILE_TYPES.ROAD;
+                }
+            }
+        });
+
+        // 4. 캐릭터 정밀 스폰
+        this.allCharacters = [];
+        INITIAL_CHARACTERS.forEach(data => {
+            const [name, isPlayer, faction, gender, x, y, homeId] = data;
+            this.spawnCharacter(name, isPlayer, faction, gender, x, y, homeId);
+        });
     }
 
-    spawnCharacter(name, isPlayer, faction, gender, x, y) {
-        const char = new Character(name, isPlayer, faction, gender, x, y);
+    /**
+     * 캐릭터 생성 및 맵 배치
+     */
+    spawnCharacter(name, isPlayer, faction, gender, x, y, homeId) {
+        const char = new Character(name, isPlayer, faction, gender, x, y, homeId);
         this.allCharacters.push(char);
-        this.gridMap[y][x] = char;
         return char;
     }
 
     /**
-     * NPC 자율 이동 로직 ($ac 수치 기반)
+     * 특정 좌표의 타일 정보 반환
      */
-    processNPCMovement() {
-        this.allCharacters.forEach(char => {
-            if (char.isPlayer) return; // 플레이어는 제외
-
-            // 적극도($ac)에 따라 이동할지 결정 (0~100)
-            const moveChance = char.instincts.proactivity; 
-            if (Math.random() * 100 < moveChance) {
-                this._moveRandomly(char);
-            }
-        });
-    }
-
-    _moveRandomly(char) {
-        const directions = [
-            { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
-        ];
-        const dir = directions[Math.floor(Math.random() * directions.length)];
-        
-        const nextX = Math.max(0, Math.min(this.gridSize - 1, char.x + dir.x));
-        const nextY = Math.max(0, Math.min(this.gridSize - 1, char.y + dir.y));
-
-        // 이동하려는 칸이 비어있는 경우에만 이동
-        if (!this.gridMap[nextY][nextX]) {
-            this.gridMap[char.y][char.x] = null;
-            char.x = nextX;
-            char.y = nextY;
-            this.gridMap[char.y][char.x] = char;
-        }
-    }
-
     getCell(x, y) {
         if (x < 0 || x >= this.gridSize || y < 0 || y >= this.gridSize) return null;
         return this.gridMap[y][x];

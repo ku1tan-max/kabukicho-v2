@@ -1,0 +1,141 @@
+/* frontend/src/components/MapView.css */
+
+.kabukicho-layout {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    background-color: #0d0d0d;
+    color: #d1d1d1;
+    overflow: hidden;
+}
+
+/* 맵 영역: 정밀 격자 유지 */
+.map-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+
+.grid-board {
+    display: grid;
+    width: 85vh;
+    height: 85vh;
+    aspect-ratio: 1 / 1;
+    border: 2px solid #333;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+/* 타일 및 그리드 라인 */
+.tile {
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.entrance-marker {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    color: #fff;
+    font-size: 8px;
+    opacity: 0.8;
+}
+
+/* 캐릭터 유닛 스타일 */
+.char-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.char-unit:hover {
+    transform: scale(1.2);
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #00ffcc;
+    box-shadow: 0 0 10px #00ffcc;
+}
+
+.player .dot {
+    background-color: #ff3366;
+    box-shadow: 0 0 10px #ff3366;
+}
+
+.char-name {
+    font-size: 9px;
+    margin-top: 3px;
+    background: rgba(0, 0, 0, 0.85);
+    padding: 1px 4px;
+    border-radius: 2px;
+    white-space: nowrap;
+    color: #fff;
+}
+
+/* 사이드바 스타일 */
+.sidebar {
+    width: 380px;
+    background-color: #161616;
+    border-left: 2px solid #252525;
+    display: flex;
+    flex-direction: column;
+}
+
+.log-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    border-bottom: 1px solid #252525;
+    overflow: hidden;
+}
+
+.log-panel h3 {
+    font-size: 15px;
+    color: #ff9900;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #333;
+    padding-bottom: 8px;
+}
+
+.log-list {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.log-item {
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #222;
+}
+
+.log-time {
+    color: #666;
+    margin-right: 5px;
+}
+
+.char-mini-stats {
+    margin-top: 15px;
+    padding: 10px;
+    background: #1e1e1e;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.empty-msg {
+    color: #444;
+    font-style: italic;
+    text-align: center;
+    margin-top: 50px;
+}
