@@ -1,32 +1,63 @@
+// frontend/src/App.jsx
 import React, { useState, useEffect } from 'react';
 import GameGrid from './GameGrid';
 import StatusPanel from './StatusPanel';
+import { engine } from '../../kabukicho-engine'; // 우리가 만든 엔진 싱글톤
+import './App.css';
 
 function App() {
-  const [grid, setGrid] = useState([]);
-  const [player, setPlayer] = useState(null);
-  const [logs, setLogs] = useState([]);
-  const [selectedNpc, setSelectedNpc] = useState(null);
+  const [gameState, setGameState] = useState(null);
+  const [selectedChar, setSelectedChar] = useState(null);
 
-  // 턴 처리 핸들러 (이게 함수 안에 있어야 함! 🚬)
-  const handleTurn = async (tx, ty) => {
-    try {
-      const response = await fetch('http://localhost:8080/api/game/turn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetX: tx, targetY: ty })
-      });
-      const data = await response.json();
-      // 데이터 업데이트 로직...
-    } catch (err) {
-      console.error("카부키초 엔진 정지: ", err);
-    }
+  // 초기 로딩
+  useEffect(() => {
+    // 엔진 초기 상태 가져오기
+    const initialState = {
+      characters: engine.world.allCharacters,
+      city: engine.world.city,
+      turn: 0,
+      logs: []
+    };
+    setGameState(initialState);
+  }, []);
+
+  // 턴 진행 함수
+  const handleNextTurn = (targetX, targetY) => {
+    const result = engine.nextTurn(targetX, targetY);
+    setGameState(result);
   };
 
+  // 캐릭터 클릭 시 상세 정보 조회
+  const handleCharClick = (id) => {
+    const detail = engine.getCharacterDetail(id);
+    setSelectedChar(detail);
+  };
+
+  if (!gameState) return <div className="loading">카부키초 로딩 중... 🚬</div>;
+
   return (
-    <div className="App" style={{ display: 'flex' }}>
-      <GameGrid grid={grid} onCellClick={handleTurn} />
-      <StatusPanel player={player} selectedNpc={selectedNpc} logs={logs} />
+    <div className="app-container">
+      <header className="game-header">
+        <h1>은혼 피플: 카부키초 - 인간 실격</h1>
+        <div className="city-info">
+          <span>예산: {gameState.city.budget}엔</span>
+          <span>세율: {gameState.city.taxRate}%</span>
+        </div>
+      </header>
+
+      <main className="game-main">
+        <GameGrid 
+          characters={gameState.characters} 
+          gridSize={engine.world.gridSize}
+          onCellClick={handleNextTurn}
+          onCharClick={handleCharClick}
+        />
+        <StatusPanel 
+          selectedChar={selectedChar} 
+          logs={gameState.logs}
+          news={gameState.city.news}
+        />
+      </main>
     </div>
   );
 }
